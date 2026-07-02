@@ -1,10 +1,13 @@
 import { NavigationContainer } from "@react-navigation/native";
 import AppNavigator from "./src/navigation/AppNavigator";
+import { TransactionProvider } from "./src/context/TransactionContext";
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <AppNavigator />
-    </NavigationContainer>
+    <TransactionProvider>
+      <NavigationContainer>
+        <AppNavigator />
+      </NavigationContainer>
+    </TransactionProvider>
   );
 }

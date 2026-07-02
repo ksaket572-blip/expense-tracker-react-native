@@ -1,6 +1,22 @@
 import { View, Text, StyleSheet } from "react-native";
+import { useEffect } from "react";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../../types/navigation";
 
-export default function SplashScreen() {
+type Props = NativeStackScreenProps<RootStackParamList, "Splash">;
+
+export default function SplashScreen({ navigation }: Props) {
+
+  // Runs once when the Splash Screen is opened
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      navigation.replace("Dashboard");
+    }, 2000);
+
+    // Cleanup function
+    return () => clearTimeout(timer);
+  }, [navigation]);
+
   return (
     <View style={styles.container}>
       <Text style={styles.logo}>💰</Text>
