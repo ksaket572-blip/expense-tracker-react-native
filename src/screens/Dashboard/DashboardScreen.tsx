@@ -142,6 +142,14 @@ export default function DashboardScreen({
           Add Transaction
         </Text>
       </TouchableOpacity>
+      <TouchableOpacity
+  style={styles.summaryButton}
+  onPress={() => navigation.navigate("Summary")}
+>
+  <Text style={styles.summaryButtonText}>
+    View Summary
+  </Text>
+</TouchableOpacity>
     </ScrollView>
   );
 }
@@ -252,6 +260,18 @@ const styles = StyleSheet.create({
   },
 
   buttonText: {
+    color: "#FFFFFF",
+    textAlign: "center",
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  summaryButton: {
+    backgroundColor: "#16A34A",
+    paddingVertical: 15,
+    borderRadius: 12,
+    marginTop: 15,
+  },
+  summaryButtonText: {
     color: "#FFFFFF",
     textAlign: "center",
     fontSize: 18,

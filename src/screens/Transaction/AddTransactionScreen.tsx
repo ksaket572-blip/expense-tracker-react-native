@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -27,51 +27,131 @@ type Props = NativeStackScreenProps<
 
 export default function AddTransactionScreen({
   navigation,
+  route,
 }: Props) {
-  const { addTransaction } = useTransactions();
+  const {
+  transactions,
+  addTransaction,
+  updateTransaction,
+} = useTransactions();
 
-  const [title, setTitle] = useState("");
-  const [amount, setAmount] = useState("");
+const transactionId = route.params?.transactionId;
 
-  const [type, setType] = useState<"income" | "expense">(
-    "expense"
+const existingTransaction = transactions.find(
+  (item) => item.id === transactionId
+);
+
+const isEdit = !!existingTransaction;
+  
+
+const [title, setTitle] = useState(
+  existingTransaction?.title ?? ""
+);
+
+const [amount, setAmount] = useState(
+  existingTransaction
+    ? existingTransaction.amount.toString()
+    : ""
+);
+
+const [type, setType] = useState<"income" | "expense">(
+  existingTransaction?.type ?? "expense"
+);
+
+const [category, setCategory] =
+  useState<Category>(
+    existingTransaction?.category ?? "Other"
   );
 
-  const [category, setCategory] =
-    useState<Category>("Other");
+const [notes, setNotes] = useState(
+  existingTransaction?.notes ?? ""
+);
 
-  const [notes, setNotes] = useState("");
-
-  const [date, setDate] = useState(new Date());
+const [date, setDate] = useState(new Date());
 
   const [showDatePicker, setShowDatePicker] =
     useState(false);
+    useEffect(() => {
+  if (existingTransaction) {
+    setTitle(existingTransaction.title);
 
-  const handleSave = async () => {
-    if (!title.trim()) {
-      Alert.alert("Validation", "Please enter title.");
-      return;
+    setAmount(
+      existingTransaction.amount.toString()
+    );
+
+    setType(existingTransaction.type);
+
+    setCategory(existingTransaction.category);
+
+    setNotes(
+      existingTransaction.notes ?? ""
+    );
+
+    const parsedDate = new Date(
+      existingTransaction.date
+    );
+
+    if (!isNaN(parsedDate.getTime())) {
+      setDate(parsedDate);
     }
+  }
+}, [existingTransaction]);
 
-    if (!amount || Number(amount) <= 0) {
-      Alert.alert("Validation", "Please enter valid amount.");
-      return;
+const handleSave = async () => {
+  if (!title.trim()) {
+    Alert.alert("Validation", "Please enter title.");
+    return;
+  }
+
+  if (!amount.trim() || Number(amount) <= 0) {
+    Alert.alert("Validation", "Please enter a valid amount.");
+    return;
+  }
+
+  const transaction = {
+    id: existingTransaction
+      ? existingTransaction.id
+      : uuid.v4().toString(),
+
+    title: title.trim(),
+
+    amount: Number(amount),
+
+    type,
+
+    category,
+
+    date: date.toLocaleDateString(),
+
+    notes: notes.trim(),
+  };
+
+  try {
+    if (isEdit) {
+      await updateTransaction(transaction);
+
+      Alert.alert(
+        "Success",
+        "Transaction Updated Successfully"
+      );
+    } else {
+      await addTransaction(transaction);
+
+      Alert.alert(
+        "Success",
+        "Transaction Added Successfully"
+      );
     }
-
-    await addTransaction({
-      id: uuid.v4().toString(),
-      title: title.trim(),
-      amount: Number(amount),
-      type,
-      category,
-      date: date.toLocaleDateString(),
-      notes: notes.trim(),
-    });
-
-    Alert.alert("Success", "Transaction Added Successfully");
 
     navigation.goBack();
-  };
+  } catch (error) {
+    Alert.alert(
+      "Error",
+      "Something went wrong. Please try again."
+    );
+    console.log(error);
+  }
+};
 
   return (
     <ScrollView
@@ -79,10 +159,11 @@ export default function AddTransactionScreen({
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.heading}>
-        Add Transaction
-      </Text>
-
+<Text style={styles.heading}>
+  {isEdit
+    ? "Edit Transaction"
+    : "Add Transaction"}
+</Text>
       <Text style={styles.label}>Title</Text>
 
       <TextInput
@@ -227,7 +308,9 @@ export default function AddTransactionScreen({
         onPress={handleSave}
       >
         <Text style={styles.saveButtonText}>
-          Save Transaction
+          {isEdit
+  ? "Update Transaction"
+  : "Save Transaction"}
         </Text>
       </TouchableOpacity>
     </ScrollView>
