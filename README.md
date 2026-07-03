@@ -30,7 +30,7 @@ A React Native Expense Tracker application built using Expo and TypeScript.
 ## Installation
 
 ```bash
-git clone <repository-url>
+git clone <https://github.com/ksaket572-blip/expense-tracker-react-native>
 
 cd ExpenseTracker
 
