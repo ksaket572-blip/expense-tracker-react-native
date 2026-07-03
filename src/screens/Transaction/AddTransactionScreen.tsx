@@ -1,196 +1,236 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TextInput,
+  ScrollView,
   TouchableOpacity,
-  FlatList,
   Alert,
+  Platform,
 } from "react-native";
+
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { Picker } from "@react-native-picker/picker";
+import uuid from "react-native-uuid";
+
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 
 import { useTransactions } from "../../context/TransactionContext";
-import {
-  RootStackParamList,
-} from "../../types/navigation";
+import { RootStackParamList } from "../../types/navigation";
+import { Category } from "../../types/transaction";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
-  "TransactionList"
+  "AddTransaction"
 >;
 
-export default function TransactionListScreen({
+export default function AddTransactionScreen({
   navigation,
 }: Props) {
-  const {
-    transactions,
-    deleteTransaction,
-  } = useTransactions();
+  const { addTransaction } = useTransactions();
 
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<
-    "all" | "income" | "expense"
-  >("all");
+  const [title, setTitle] = useState("");
+  const [amount, setAmount] = useState("");
 
-  const filteredTransactions = useMemo(() => {
-    return transactions.filter((item) => {
-      const matchesSearch =
-        item.title
-          .toLowerCase()
-          .includes(search.toLowerCase());
+  const [type, setType] = useState<"income" | "expense">(
+    "expense"
+  );
 
-      const matchesType =
-        filter === "all"
-          ? true
-          : item.type === filter;
+  const [category, setCategory] =
+    useState<Category>("Other");
 
-      return matchesSearch && matchesType;
+  const [notes, setNotes] = useState("");
+
+  const [date, setDate] = useState(new Date());
+
+  const [showDatePicker, setShowDatePicker] =
+    useState(false);
+
+  const handleSave = async () => {
+    if (!title.trim()) {
+      Alert.alert("Validation", "Please enter title.");
+      return;
+    }
+
+    if (!amount || Number(amount) <= 0) {
+      Alert.alert("Validation", "Please enter valid amount.");
+      return;
+    }
+
+    await addTransaction({
+      id: uuid.v4().toString(),
+      title: title.trim(),
+      amount: Number(amount),
+      type,
+      category,
+      date: date.toLocaleDateString(),
+      notes: notes.trim(),
     });
-  }, [transactions, search, filter]);
 
-  const handleDelete = (id: string) => {
-    Alert.alert(
-      "Delete Transaction",
-      "Are you sure you want to delete this transaction?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => deleteTransaction(id),
-        },
-      ]
-    );
+    Alert.alert("Success", "Transaction Added Successfully");
+
+    navigation.goBack();
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
       <Text style={styles.heading}>
-        Transactions
+        Add Transaction
       </Text>
 
+      <Text style={styles.label}>Title</Text>
+
       <TextInput
-        placeholder="Search by title..."
-        style={styles.searchInput}
-        value={search}
-        onChangeText={setSearch}
+        style={styles.input}
+        placeholder="Enter title"
+        value={title}
+        onChangeText={setTitle}
       />
 
-      <View style={styles.filterRow}>
-        <TouchableOpacity
-          style={[
-            styles.filterButton,
-            filter === "all" &&
-              styles.activeFilter,
-          ]}
-          onPress={() => setFilter("all")}
-        >
-          <Text>All</Text>
-        </TouchableOpacity>
+      <Text style={styles.label}>Amount</Text>
 
+      <TextInput
+        style={styles.input}
+        placeholder="Enter amount"
+        keyboardType="numeric"
+        value={amount}
+        onChangeText={setAmount}
+      />
+
+      <Text style={styles.label}>Type</Text>
+
+      <View style={styles.typeContainer}>
         <TouchableOpacity
           style={[
-            styles.filterButton,
-            filter === "income" &&
+            styles.typeButton,
+            type === "income" &&
               styles.activeIncome,
           ]}
-          onPress={() =>
-            setFilter("income")
-          }
+          onPress={() => setType("income")}
         >
-          <Text>Income</Text>
+          <Text style={styles.typeText}>
+            Income
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[
-            styles.filterButton,
-            filter === "expense" &&
+            styles.typeButton,
+            type === "expense" &&
               styles.activeExpense,
           ]}
-          onPress={() =>
-            setFilter("expense")
-          }
+          onPress={() => setType("expense")}
         >
-          <Text>Expense</Text>
+          <Text style={styles.typeText}>
+            Expense
+          </Text>
         </TouchableOpacity>
       </View>
 
-      <FlatList
-        data={filteredTransactions}
-        keyExtractor={(item) => item.id}
-        ListEmptyComponent={
-          <Text style={styles.empty}>
-            No Transactions Found
-          </Text>
+      <Text style={styles.label}>
+        Category
+      </Text>
+
+      <View style={styles.pickerContainer}>
+        <Picker
+          selectedValue={category}
+          onValueChange={(value) =>
+            setCategory(value as Category)
+          }
+        >
+          <Picker.Item
+            label="Salary"
+            value="Salary"
+          />
+
+          <Picker.Item
+            label="Food"
+            value="Food"
+          />
+
+          <Picker.Item
+            label="Travel"
+            value="Travel"
+          />
+
+          <Picker.Item
+            label="Shopping"
+            value="Shopping"
+          />
+
+          <Picker.Item
+            label="Bills"
+            value="Bills"
+          />
+
+          <Picker.Item
+            label="Entertainment"
+            value="Entertainment"
+          />
+
+          <Picker.Item
+            label="Other"
+            value="Other"
+          />
+        </Picker>
+      </View>
+
+      <Text style={styles.label}>Date</Text>
+
+      <TouchableOpacity
+        style={styles.dateButton}
+        onPress={() =>
+          setShowDatePicker(true)
         }
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() =>
-              navigation.navigate(
-                "TransactionDetails",
-                {
-                  transactionId: item.id,
-                }
-              )
+      >
+        <Text style={styles.dateText}>
+          {date.toDateString()}
+        </Text>
+      </TouchableOpacity>
+
+      {showDatePicker && (
+        <DateTimePicker
+          value={date}
+          mode="date"
+          display={
+            Platform.OS === "ios"
+              ? "spinner"
+              : "default"
+          }
+          onChange={(_, selectedDate) => {
+            setShowDatePicker(false);
+
+            if (selectedDate) {
+              setDate(selectedDate);
             }
-          >
-            <View style={{ flex: 1 }}>
-              <Text style={styles.title}>
-                {item.title}
-              </Text>
+          }}
+        />
+      )}
 
-              <Text style={styles.subtitle}>
-                {item.category}
-              </Text>
+      <Text style={styles.label}>Notes</Text>
 
-              <Text style={styles.date}>
-                {item.date}
-              </Text>
-            </View>
-
-            <View
-              style={{
-                alignItems: "flex-end",
-              }}
-            >
-              <Text
-                style={[
-                  styles.amount,
-                  {
-                    color:
-                      item.type ===
-                      "income"
-                        ? "#16A34A"
-                        : "#DC2626",
-                  },
-                ]}
-              >
-                ₹{item.amount}
-              </Text>
-
-              <TouchableOpacity
-                onPress={() =>
-                  handleDelete(item.id)
-                }
-              >
-                <Text
-                  style={
-                    styles.deleteText
-                  }
-                >
-                  Delete
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        )}
+      <TextInput
+        style={styles.notesInput}
+        multiline
+        placeholder="Optional Notes"
+        value={notes}
+        onChangeText={setNotes}
       />
-    </View>
+
+      <TouchableOpacity
+        style={styles.saveButton}
+        onPress={handleSave}
+      >
+        <Text style={styles.saveButtonText}>
+          Save Transaction
+        </Text>
+      </TouchableOpacity>
+    </ScrollView>
   );
 }
 
@@ -198,44 +238,59 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F8FAFC",
-    padding: 16,
+  },
+
+  content: {
+    padding: 20,
+    paddingBottom: 60,
   },
 
   heading: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: "bold",
     color: "#1E293B",
-    marginBottom: 20,
+    marginBottom: 25,
   },
 
-  searchInput: {
-    backgroundColor: "#FFFFFF",
+  label: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#334155",
+    marginBottom: 8,
+    marginTop: 15,
+  },
+
+  input: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#CBD5E1",
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
+    padding: 15,
     fontSize: 16,
-    marginBottom: 16,
   },
 
-  filterRow: {
+  notesInput: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    padding: 15,
+    height: 120,
+    textAlignVertical: "top",
+    fontSize: 16,
+  },
+
+  typeContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 18,
-    gap: 10,
+    gap: 12,
   },
 
-  filterButton: {
+  typeButton: {
     flex: 1,
     backgroundColor: "#E2E8F0",
-    paddingVertical: 12,
-    borderRadius: 10,
+    paddingVertical: 15,
+    borderRadius: 12,
     alignItems: "center",
-  },
-
-  activeFilter: {
-    backgroundColor: "#2563EB",
   },
 
   activeIncome: {
@@ -246,50 +301,44 @@ const styles = StyleSheet.create({
     backgroundColor: "#EF4444",
   },
 
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    elevation: 2,
-  },
-
-  title: {
-    fontSize: 17,
+  typeText: {
     fontWeight: "700",
+    fontSize: 16,
     color: "#1E293B",
   },
 
-  subtitle: {
-    marginTop: 4,
-    fontSize: 14,
-    color: "#64748B",
+  pickerContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    overflow: "hidden",
   },
 
-  date: {
-    marginTop: 4,
-    fontSize: 13,
-    color: "#94A3B8",
+  dateButton: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    padding: 16,
   },
 
-  amount: {
-    fontSize: 18,
-    fontWeight: "bold",
+  dateText: {
+    fontSize: 16,
+    color: "#1E293B",
   },
 
-  deleteText: {
-    marginTop: 8,
-    color: "#DC2626",
-    fontWeight: "600",
+  saveButton: {
+    backgroundColor: "#2563EB",
+    paddingVertical: 17,
+    borderRadius: 12,
+    marginTop: 30,
   },
 
-  empty: {
+  saveButtonText: {
+    color: "#fff",
     textAlign: "center",
-    marginTop: 80,
+    fontWeight: "bold",
     fontSize: 18,
-    color: "#64748B",
   },
 });
